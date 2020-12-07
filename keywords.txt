@@ -1,0 +1,27 @@
+# Interval sender ArduinoIDE Colour Map
+
+# Datatypes (KEYWORD1)
+
+send_info_t	KEYWORD1
+
+# Methods and Functions (KEYWORD2)
+
+void interval_send_tick( uint32_t global_ms );
+
+interval_send_time_remaining_id	KEYWORD2
+interval_send_time_remaining	KEYWORD2
+interval_send_last_timestamp_id	KEYWORD2
+interval_send_last_timestamp	KEYWORD2
+interval_send_enabled_id	KEYWORD2
+interval_send_enabled	KEYWORD2
+interval_send_add_id	KEYWORD2
+interval_send_add	KEYWORD2
+interval_send_remove_id	KEYWORD2
+interval_send_remove	KEYWORD2
+interval_send_start_id	KEYWORD2
+interval_send_start	KEYWORD2
+interval_send_stop_id	KEYWORD2
+interval_send_stop	KEYWORD2
+
+
+# Constants (LITERAL1)
