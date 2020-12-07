@@ -10,10 +10,10 @@ extern "C" {
 #define SEND_COUNT_MAX 6
 
 typedef struct {
-	eui_message_t *tracked;
-	uint32_t interval;
-	uint32_t last_sent;
-	uint8_t enabled;			
+    eui_message_t *tracked;
+    uint32_t interval;
+    uint32_t last_sent;
+    uint8_t enabled;            
 } send_info_t;
 
 
