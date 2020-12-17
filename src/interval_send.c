@@ -1,34 +1,43 @@
 #include "interval_send.h"
 #include "interval_send_private.h"
 
+static send_info_t send_list[ SEND_COUNT_MAX ] = { 0 };
+static uint8_t send_list_count = 0;
+static bool send_enable = true;
 
-send_info_t send_list[ SEND_COUNT_MAX ] = { 0 };
-uint8_t send_list_count = 0;
+void interval_send_enable( bool enabled )
+{
+    send_enable = enabled;
+}
 
 void interval_send_tick( uint32_t global_ms )
 {
-    send_info_t *item;
-
-    // Walk through the array of items to send
-    for( uint8_t i = 0; i < SEND_COUNT_MAX; i++ )
+    if( send_enable )
     {
-        // Use a pointer to the entry in the array for convenience
-        item = &send_list[i];
-        if( item->tracked )
-        {
-            // Check if the object needs to be sent right now
-            if(    item->enabled
-                && ( global_ms - item->last_sent > item->interval ) )
-            {
-                // Because we already have the pointer, we send it as untracked
-                // eui_send_tracked does the lookup from the ID string
-                eui_send_untracked( item->tracked );
+        send_info_t *item;
 
-                // Update the last-sent timestamp
-                item->last_sent = global_ms;
+        // Walk through the array of items to send
+        for( uint8_t i = 0; i < SEND_COUNT_MAX; i++ )
+        {
+            // Use a pointer to the entry in the array for convenience
+            item = &send_list[i];
+            if( item->tracked )
+            {
+                // Check if the object needs to be sent right now
+                if(    item->enabled
+                    && ( global_ms - item->last_sent > item->interval ) )
+                {
+                    // Because we already have the pointer, send as untracked
+                    // eui_send_tracked does the lookup from the ID string
+                    eui_send_untracked( item->tracked );
+
+                    // Update the last-sent timestamp
+                    item->last_sent = global_ms;
+                }
             }
         }
-    }
+
+    }   // end send_enable check
 
 }
 

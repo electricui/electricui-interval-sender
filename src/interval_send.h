@@ -17,6 +17,7 @@ typedef struct {
 } send_info_t;
 
 
+void interval_send_enable( bool enabled );
 
 void interval_send_tick( uint32_t global_ms );
 
