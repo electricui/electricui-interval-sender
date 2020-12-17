@@ -5,6 +5,9 @@
 extern "C" {
 #endif
 
+#include "stdint.h"
+#include "stdbool.h"
+
 #include "electricui.h"
 
 #define SEND_COUNT_MAX 6
@@ -16,6 +19,10 @@ typedef struct {
     uint8_t enabled;            
 } send_info_t;
 
+typedef struct {
+	uint32_t interval;
+    char id[EUI_MAX_MSGID_SIZE];
+} interval_send_requested_t;
 
 void interval_send_enable( bool enabled );
 

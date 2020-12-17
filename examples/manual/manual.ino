@@ -1,26 +1,31 @@
-//Import the ElectricUI Library
+/*
+ *  Basic demo of interval_send with manual calls.
+ *  Callback "start" and "stop" allow basic control from UI buttons
+*/
+
 #include "electricui.h"
 #include "interval_send.h"
 
-// Simple variables to modify the LED behaviour
 uint8_t   blink_enable = 1; // if the blinker should be running
 uint8_t   led_state  = 0;   // track if the LED is illuminated
 uint16_t  glow_time  = 200; // in milliseconds
 
 uint32_t  led_timer  = 0;   // track when the light turned on or off
 
-// Instantiate the communication interface's management object
+char device_name[] = "Manual Send";
+
 eui_interface_t serial_comms = EUI_INTERFACE( &serial_write ); 
 
 void enable_sender( void );
 void disable_sender( void );
 
-// Electric UI manages variables referenced in this array
 eui_message_t tracked_variables[] = 
 {
   EUI_UINT8(  "led_blink",  blink_enable ),
   EUI_UINT8(  "led_state",  led_state ),
   EUI_UINT16( "lit_time",   glow_time ),
+  EUI_CHAR_ARRAY( "name",   device_name ),
+
   EUI_FUNC( "start", enable_sender ),
   EUI_FUNC( "stop", disable_sender ),
 };
@@ -31,19 +36,17 @@ void setup()
   Serial.begin( 115200 );
   pinMode( LED_BUILTIN, OUTPUT );
 
-  // Provide the library with the interface we just setup
   eui_setup_interface( &serial_comms );
-
-  // Provide the tracked variables to the library
   EUI_TRACK( tracked_variables );
-
-  // Provide a identifier to make this board easy to find in the UI
-  eui_setup_identifier( "hello", 5 );
+  eui_setup_identifier( "manual", 5 );
 
   led_timer = millis();
 
-
+  // Setup the sender with the led_state message ID
+  // Will be sent every 50 milliseconds
   interval_send_add_id( "led_state", 50 );
+
+  // Sending starts when added, but can be paused manually 
   interval_send_stop_id( "led_state" );
 }
 
@@ -59,34 +62,29 @@ void disable_sender( void )
 
 void loop() 
 {
-  serial_rx_handler();  //check for new inbound data
-  interval_send_tick( millis() ); // allow the interval sender to output if required
+  while( Serial.available() > 0 )  
+  {  
+    eui_parse( Serial.read(), &serial_interface );
+  }
 
+  // Provide the current time in milliseconds, allowing the 
+  // library to send data to the UI if needed
+  interval_send_tick( millis() ); 
 
+  // Standard hello_blink behaviour
   if( blink_enable )
   {
-    // Check if the LED has been on for the configured duration
     if( millis() - led_timer >= glow_time )
     {
-      led_state = !led_state; //invert led state
+      led_state = !led_state;
       led_timer = millis();
     }    
   }
 
-  digitalWrite( LED_BUILTIN, led_state ); //update the LED to match the intended state
-
-}
-
-void serial_rx_handler()
-{
-  // While we have data, we will pass those bytes to the ElectricUI parser
-  while( Serial.available() > 0 )  
-  {  
-    eui_parse( Serial.read(), &serial_comms );  // Ingest a byte
-  }
+  digitalWrite( LED_BUILTIN, led_state ); 
 }
   
 void serial_write( uint8_t *data, uint16_t len )
 {
-  Serial.write( data, len ); //output on the main serial port
+  Serial.write( data, len );
 }

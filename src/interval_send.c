@@ -1,7 +1,7 @@
 #include "interval_send.h"
 #include "interval_send_private.h"
 
-static send_info_t send_list[ SEND_COUNT_MAX ] = { 0 };
+send_info_t send_list[ SEND_COUNT_MAX ] = { 0 };
 static uint8_t send_list_count = 0;
 static bool send_enable = true;
 
@@ -44,7 +44,7 @@ void interval_send_tick( uint32_t global_ms )
 
 uint32_t interval_send_time_remaining_id( char *id, uint32_t global_ms )
 {
-    return interval_send_time_remaining( eui_find_tracked_object(id), global_ms );
+    return interval_send_time_remaining( find_tracked_object( id ), global_ms );
 }
 
 uint32_t interval_send_time_remaining( eui_message_t *tracked, uint32_t global_ms )
@@ -62,7 +62,7 @@ uint32_t interval_send_time_remaining( eui_message_t *tracked, uint32_t global_m
 
 uint32_t interval_send_last_timestamp_id( char *id )
 {
-    return interval_send_last_timestamp( eui_find_tracked_object(id) );
+    return interval_send_last_timestamp( find_tracked_object(id) );
 }
 
 uint32_t interval_send_last_timestamp( eui_message_t *tracked )
@@ -80,7 +80,7 @@ uint32_t interval_send_last_timestamp( eui_message_t *tracked )
 
 uint8_t interval_send_enabled_id( char *id )
 {
-    return interval_send_enabled( eui_find_tracked_object(id) );
+    return interval_send_enabled( find_tracked_object(id) );
 }
 
 uint8_t interval_send_enabled( eui_message_t *tracked )
@@ -99,7 +99,7 @@ uint8_t interval_send_enabled( eui_message_t *tracked )
 
 void interval_send_add_id( char *id, uint32_t interval )
 {
-    interval_send_add( eui_find_tracked_object(id), interval );
+    interval_send_add( find_tracked_object(id), interval );
 }
 
 void interval_send_add( eui_message_t *tracked, uint32_t interval )
@@ -109,8 +109,16 @@ void interval_send_add( eui_message_t *tracked, uint32_t interval )
 
     if( item )
     {
-        // Just update the interval
-        item->interval = interval;
+        if( interval )
+        {
+            // Update with the newer interval value
+            item->interval = interval;
+        }
+        else
+        {
+            // Interval of 0 - remove it from the list
+            interval_send_remove( tracked );
+        }
     }
     else if( send_list_count < SEND_COUNT_MAX )
     {
@@ -129,7 +137,7 @@ void interval_send_add( eui_message_t *tracked, uint32_t interval )
 
 void interval_send_remove_id( char *id )
 {
-    interval_send_remove( eui_find_tracked_object(id) );
+    interval_send_remove( find_tracked_object(id) );
 }
 
 void interval_send_remove( eui_message_t *tracked )
@@ -152,7 +160,7 @@ void interval_send_remove( eui_message_t *tracked )
 
 void interval_send_start_id( char *id )
 {
-    interval_send_start( eui_find_tracked_object(id) );
+    interval_send_start( find_tracked_object(id) );
 }
 
 void interval_send_start( eui_message_t *tracked )
@@ -168,7 +176,7 @@ void interval_send_start( eui_message_t *tracked )
 
 void interval_send_stop_id( char *id )
 {
-    interval_send_stop( eui_find_tracked_object(id) );
+    interval_send_stop( find_tracked_object(id) );
 }
 
 void interval_send_stop( eui_message_t *tracked )
