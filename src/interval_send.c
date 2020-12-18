@@ -1,9 +1,25 @@
 #include "interval_send.h"
 #include "interval_send_private.h"
 
-send_info_t send_list[ SEND_COUNT_MAX ] = { 0 };
+static send_info_t *send_list;
+static uint8_t send_list_capacity = 0;
+
 static uint8_t send_list_count = 0;
 static bool send_enable = true;
+
+void interval_send_init( send_info_t *send_pool, uint8_t pool_size )
+{
+    if( send_pool && pool_size )
+    {
+        send_list = send_pool;
+        send_list_capacity = pool_size;
+    }
+    else
+    {
+        send_list = 0;
+        send_list_capacity = 0;
+    }
+}
 
 void interval_send_enable( bool enabled )
 {
@@ -12,12 +28,12 @@ void interval_send_enable( bool enabled )
 
 void interval_send_tick( uint32_t global_ms )
 {
-    if( send_enable )
+    if( send_enable && send_list )
     {
         send_info_t *item;
 
         // Walk through the array of items to send
-        for( uint8_t i = 0; i < SEND_COUNT_MAX; i++ )
+        for( uint8_t i = 0; i < send_list_capacity; i++ )
         {
             // Use a pointer to the entry in the array for convenience
             item = &send_list[i];
@@ -120,7 +136,7 @@ void interval_send_add( eui_message_t *tracked, uint32_t interval )
             interval_send_remove( tracked );
         }
     }
-    else if( send_list_count < SEND_COUNT_MAX )
+    else if( send_list_count < send_list_capacity )
     {
         // Add the entry to the interval send list
         item = &send_list[send_list_count];
@@ -190,14 +206,12 @@ void interval_send_stop( eui_message_t *tracked )
 }
 
 
-
-
 send_info_t* select_list_entry( eui_message_t *tracked )
 {
     send_info_t *item;
 
     // Walk the list and find the matching pointer
-    for( uint8_t i = 0; i < SEND_COUNT_MAX; i++ )
+    for( uint8_t i = 0; i < send_list_capacity; i++ )
     {
         item = &send_list[i];
         if( item->tracked == tracked )

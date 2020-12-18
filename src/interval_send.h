@@ -10,8 +10,6 @@ extern "C" {
 
 #include "electricui.h"
 
-#define SEND_COUNT_MAX 6
-
 typedef struct {
     eui_message_t *tracked;
     uint32_t interval;
@@ -23,6 +21,8 @@ typedef struct {
 	uint32_t interval;
     char id[EUI_MAX_MSGID_SIZE];
 } interval_send_requested_t;
+
+void interval_send_init( send_info_t *send_pool, uint8_t pool_size );
 
 void interval_send_enable( bool enabled );
 
