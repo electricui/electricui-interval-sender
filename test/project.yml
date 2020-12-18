@@ -1,28 +1,14 @@
 ---
-
-# Notes:
-# Sample project C code is not presently written to produce a release artifact.
-# As such, release build options are disabled.
-# This sample, therefore, only demonstrates running a collection of unit tests.
-
 :project:
   :use_exceptions: FALSE
   :use_test_preprocessor: TRUE
   :use_auxiliary_dependencies: TRUE
   :build_root: build
-#  :release_build: TRUE
+  #  :release_build: TRUE
   :test_file_prefix: test_
   :which_ceedling: gem
-  :ceedling_version: 0.30.0
   :default_tasks:
     - test:all
-
-#:test_build:
-#  :use_assembly: TRUE
-
-#:release_build:
-#  :output: MyApp.out
-#  :use_assembly: FALSE
 
 :environment:
 
@@ -59,16 +45,19 @@
   :enforce_strict_ordering: TRUE
   :plugins:
     - :ignore
+    - :ignore_arg
+    - :expect
+    - :expect_any_args
     - :callback
   :treat_as:
-    uint8:    HEX8
-    uint16:   HEX16
-    uint32:   UINT32
-    int8:     INT8
-    bool:     UINT8
+    uint8: HEX8
+    uint16: HEX16
+    uint32: UINT32
+    int8: INT8
+    bool: UINT8
+  :includes:
+    - <stdint.h>
 
-# Add -gcov to the plugins list to make sure of the gcov plugin
-# You will need to have gcov and gcovr both installed to make it work.
 # For more information on these options, see docs in plugins/gcov
 :gcov:
   :reports:
@@ -90,7 +79,7 @@
   :placement: :end
   :flag: "-l${1}"
   :path_flag: "-L ${1}"
-  :system: []    # for example, you might list 'm' to grab the math library
+  :system: [] # for example, you might list 'm' to grab the math library
   :test: []
   :release: []
 
@@ -100,4 +89,4 @@
   :enabled:
     - stdout_pretty_tests_report
     - module_generator
-...
+    - gcov

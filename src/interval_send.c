@@ -13,11 +13,13 @@ void interval_send_init( send_info_t *send_pool, uint8_t pool_size )
     {
         send_list = send_pool;
         send_list_capacity = pool_size;
+        send_list_count = 0;
     }
     else
     {
         send_list = 0;
         send_list_capacity = 0;
+        send_list_count = 0;
     }
 }
 
@@ -145,8 +147,9 @@ void interval_send_add( eui_message_t *tracked, uint32_t interval )
         item->tracked = tracked;
         item->interval = interval;
         item->last_sent = 0;
-        item->enabled = 1;
+        item->enabled = true;
 
+        send_list_count++;
         // TODO find an empty slot instead of assuming a sorted array
     }
 }
@@ -167,7 +170,7 @@ void interval_send_remove( eui_message_t *tracked )
         item->tracked = 0;
         item->interval = 0;
         item->last_sent = 0;
-        item->enabled = 0;
+        item->enabled = false;
 
         // TODO shuffle entries forward to fill the gap
     }
@@ -186,7 +189,7 @@ void interval_send_start( eui_message_t *tracked )
 
     if( item )
     {
-        item->enabled = 1;
+        item->enabled = true;
     }
 }
 
@@ -202,7 +205,7 @@ void interval_send_stop( eui_message_t *tracked )
 
     if( item )
     {
-        item->enabled = 0;
+        item->enabled = false;
     }
 }
 

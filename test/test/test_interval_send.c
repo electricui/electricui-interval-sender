@@ -58,6 +58,23 @@ void tearDown(void)
 }
 
 // TESTS
+void test_init_with_null( void )
+{   
+    // Valid pointer but invalid size
+    interval_send_init( &send_list, 0 );
+
+    // This shouldn't be added 
+    interval_send_add( &tracked_vars[0], 10 );
+
+    // Tick enough for one send
+    for( uint32_t i = 0; i < 10; i++ )
+    {
+        simulate_tick();
+        interval_send_tick( simulated_timer ); 
+    }
+
+}
+
 void test_add_id_basic( void )
 {   
     // Add one sender via message ID
@@ -102,6 +119,43 @@ void test_add_basic( void )
 
     // Tick enough for one send
     for( uint32_t i = 0; i < 10; i++ )
+    {
+        simulate_tick();
+        interval_send_tick( simulated_timer ); 
+    }
+}
+
+void test_add_many( void )
+{   
+    // Add multiple senders at different rates
+    interval_send_add( &tracked_vars[0], 10 );
+    interval_send_add( &tracked_vars[1], 25 );
+    interval_send_add( &tracked_vars[2], 33 );
+    interval_send_add( &tracked_vars[3], 50 );
+    
+    // Golden 'send order' based on rates
+    eui_send_untracked_Expect( &tracked_vars[0] );  //10
+    eui_send_untracked_Expect( &tracked_vars[0] );  //20
+    eui_send_untracked_Expect( &tracked_vars[1] );  //25
+    eui_send_untracked_Expect( &tracked_vars[0] );  //30
+    eui_send_untracked_Expect( &tracked_vars[2] );  //33
+    eui_send_untracked_Expect( &tracked_vars[0] );  //40
+    eui_send_untracked_Expect( &tracked_vars[0] );  //50
+    eui_send_untracked_Expect( &tracked_vars[1] );  
+    eui_send_untracked_Expect( &tracked_vars[3] );  
+    eui_send_untracked_Expect( &tracked_vars[0] );  //60
+    eui_send_untracked_Expect( &tracked_vars[2] );  //66
+    eui_send_untracked_Expect( &tracked_vars[0] );  //70
+    eui_send_untracked_Expect( &tracked_vars[1] );  //75
+    eui_send_untracked_Expect( &tracked_vars[0] );  //80
+    eui_send_untracked_Expect( &tracked_vars[0] );  //90
+    eui_send_untracked_Expect( &tracked_vars[2] );  //99
+    eui_send_untracked_Expect( &tracked_vars[0] );  //100
+    eui_send_untracked_Expect( &tracked_vars[1] );  //100
+    eui_send_untracked_Expect( &tracked_vars[3] );  //100
+
+    // Simulate just over 100ms of steps
+    for( uint32_t i = 0; i < 105; i++ )
     {
         simulate_tick();
         interval_send_tick( simulated_timer ); 
@@ -290,47 +344,151 @@ void test_stop_start( void )
         interval_send_tick( simulated_timer ); 
     }
 }
+
+void test_get_enabled_flag_id( void )
+{
+    find_tracked_object_ExpectAndReturn( "test", &tracked_vars[0] );
+    interval_send_add_id( "test", 10 );
+
+    // Get the enabled/disabled state
+    find_tracked_object_ExpectAndReturn( "test", &tracked_vars[0] );
+    TEST_ASSERT_TRUE( interval_send_enabled_id( "test" ) );
+
+    // disable it
+    find_tracked_object_ExpectAndReturn( "test", &tracked_vars[0] );
+    interval_send_stop_id( "test" );
+
+    // Get the enabled/disabled state
+    find_tracked_object_ExpectAndReturn( "test", &tracked_vars[0] );
+    TEST_ASSERT_FALSE( interval_send_enabled_id( "test" ) );
+}
+
+void test_get_enabled_flag( void )
+{
+    interval_send_add( &tracked_vars[0], 10 );
+
+    // Get the enabled/disabled state
+    TEST_ASSERT_TRUE( interval_send_enabled( &tracked_vars[0] ) );
+
+    // disable it
+    interval_send_stop( &tracked_vars[0] );
+
+    // Get the enabled/disabled state
+    TEST_ASSERT_FALSE( interval_send_enabled( &tracked_vars[0] ) );
+
+}
+
+void test_get_time_remaining_id( void )
+{
+    find_tracked_object_ExpectAndReturn( "test", &tracked_vars[0] );
+    interval_send_add_id( "test", 5 );
+
+    // Message is setup for 5ms interval.
+    // Sends once, then the previous timestamp is at 5, 
+    // the next is due at 10, but we stop at 7
+
+    eui_send_untracked_Expect( &tracked_vars[0] );
+
+    for( uint32_t i = 0; i < 8; i++ )
     {
         simulate_tick();
         interval_send_tick( simulated_timer ); 
     }
+
+    // Pass in the current time, get time until a send is expected
+    find_tracked_object_ExpectAndReturn( "test", &tracked_vars[0] );
+    uint32_t time_remaining = interval_send_time_remaining_id( "test", simulated_timer );
+    TEST_ASSERT_EQUAL( 3, time_remaining );
 }
 
-void test_add_many( void )
-{   
-    // Add multiple senders
-    interval_send_add( &tracked_vars[0], 10 );
-    interval_send_add( &tracked_vars[1], 10 );
-    interval_send_add( &tracked_vars[2], 10 );
-    interval_send_add( &tracked_vars[3], 10 );
+void test_get_time_remaining( void )
+{
+    interval_send_add( &tracked_vars[0], 5 );
 
-    for( uint8_t i = 0; i < NUM_TRACKED_VARS; i++ )
+    // Message is setup for 5ms interval.
+    // Sends once, then the previous timestamp is at 5, 
+    // the next is due at 10, but we stop at 7
+
+    eui_send_untracked_Expect( &tracked_vars[0] );
+
+    for( uint32_t i = 0; i < 8; i++ )
     {
-        printf("Setting up %i with ptr:%p\n", i, &tracked_vars[i]);
+        simulate_tick();
+        interval_send_tick( simulated_timer ); 
     }
 
-    // Simulate our loop until it's auto-sent
+    // Pass in the current time, get time until a send is expected
+    uint32_t time_remaining = interval_send_time_remaining( &tracked_vars[0], simulated_timer );
+    TEST_ASSERT_EQUAL( 3, time_remaining );
+}
+
+void test_get_last_timestamp_id( void )
+{
+    find_tracked_object_ExpectAndReturn( "test", &tracked_vars[0] );
+    interval_send_add_id( "test", 5 );
+    eui_send_untracked_Expect( &tracked_vars[0] );
+
+    for( uint32_t i = 0; i < 9; i++ )
+    {
+        simulate_tick();
+        interval_send_tick( simulated_timer ); 
+    }
+
+    // The timestep of the last send 
+    find_tracked_object_ExpectAndReturn( "test", &tracked_vars[0] );
+    uint32_t last_timestamp = interval_send_last_timestamp_id( "test" );
+    TEST_ASSERT_EQUAL( 5, last_timestamp );
+
+}
+
+void test_get_last_timestamp( void )
+{
+    interval_send_add( &tracked_vars[0], 5 );
+    eui_send_untracked_Expect( &tracked_vars[0] );
+
+    for( uint32_t i = 0; i < 9; i++ )
+    {
+        simulate_tick();
+        interval_send_tick( simulated_timer ); 
+    }
+
+    // The timestep of the last send 
+    uint32_t last_timestamp = interval_send_last_timestamp( &tracked_vars[0] );
+    TEST_ASSERT_EQUAL( 5, last_timestamp );
+
+}
+
+void test_global_enable( void )
+{   
+    // When added they automatically start
+    interval_send_add( &tracked_vars[0], 10 );
+    interval_send_add( &tracked_vars[1], 15 );
+
     eui_send_untracked_Expect( &tracked_vars[0] );
     eui_send_untracked_Expect( &tracked_vars[1] );
-    eui_send_untracked_Expect( &tracked_vars[2] );
-    eui_send_untracked_Expect( &tracked_vars[3] );
-
-    // printf("b\n");
-    // eui_send_untracked_Expect( &tracked_vars[1] );
-    // printf("c\n");
-    // eui_send_untracked_Expect( &tracked_vars[2] );
-    // printf("d\n");
-    // eui_send_untracked_Expect( &tracked_vars[3] );
-    // printf("e\n");
-    // eui_send_untracked_Expect( &tracked_vars[4] );
-    // printf("f\n");
-    // eui_send_untracked_Expect( &tracked_vars[5] );
-    // printf("h\n");
-    // eui_send_untracked_Expect( &tracked_vars[6] );
-
 
     // Tick enough for one send
-    for( uint32_t i = 0; i < 11; i++ )
+    for( uint32_t i = 0; i < 18; i++ )
+    {
+        simulate_tick();
+        interval_send_tick( simulated_timer ); 
+    }
+
+    // Disable the sender
+    interval_send_enable( false );
+
+    for( uint32_t i = 0; i < 50; i++ )
+    {
+        simulate_tick();
+        interval_send_tick( simulated_timer ); 
+    }
+
+    // Re-enable the sender
+    interval_send_enable( true );
+    eui_send_untracked_Expect( &tracked_vars[0] );
+    eui_send_untracked_Expect( &tracked_vars[1] );
+
+    for( uint32_t i = 0; i < 10; i++ )
     {
         simulate_tick();
         interval_send_tick( simulated_timer ); 

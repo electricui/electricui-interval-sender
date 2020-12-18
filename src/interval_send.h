@@ -14,7 +14,7 @@ typedef struct {
     eui_message_t *tracked;
     uint32_t interval;
     uint32_t last_sent;
-    uint8_t enabled;            
+    bool enabled;            
 } send_info_t;
 
 typedef struct {
