@@ -40,10 +40,7 @@ void simulate_tick( void )
 
 void simulate_ticks( uint32_t number )
 {
-    for( uint32_t i = 0; i < number; i++ )
-    {
-        simulate_tick();
-    }
+    simulated_timer += number;
 }
 
 // SETUP, TEARDOWN
@@ -72,7 +69,22 @@ void test_add_id_basic( void )
     eui_send_untracked_Expect( &tracked_vars[0] );
 
     // Tick enough for one send
-    for( uint32_t i = 0; i < 11; i++ )
+    for( uint32_t i = 0; i < 10; i++ )
+    {
+        simulate_tick();
+        interval_send_tick( simulated_timer ); 
+    }
+}
+
+void test_add_id_missing( void )
+{   
+    // Add a sender with a message ID that doesn't exist
+    find_tracked_object_ExpectAndReturn( "blah", 0 );
+    interval_send_add_id( "blah", 10 );
+
+    // We don't expect anything to send
+
+    for( uint32_t i = 0; i < 20; i++ )
     {
         simulate_tick();
         interval_send_tick( simulated_timer ); 
@@ -89,7 +101,195 @@ void test_add_basic( void )
     eui_send_untracked_Expect( &tracked_vars[0] );
 
     // Tick enough for one send
-    for( uint32_t i = 0; i < 11; i++ )
+    for( uint32_t i = 0; i < 10; i++ )
+    {
+        simulate_tick();
+        interval_send_tick( simulated_timer ); 
+    }
+}
+
+void test_add_update_interval( void )
+{   
+    interval_send_add( &tracked_vars[0], 10 );
+
+    // Simulate our loop until it's auto-sent once
+    eui_send_untracked_Expect( &tracked_vars[0] );
+
+    for( uint32_t i = 0; i < 10; i++ )
+    {
+        simulate_tick();
+        interval_send_tick( simulated_timer ); 
+    }
+
+    // Update it to 100ms
+    interval_send_add( &tracked_vars[0], 100 );
+    eui_send_untracked_Expect( &tracked_vars[0] );
+
+    for( uint32_t i = 0; i < 100; i++ )
+    {
+        simulate_tick();
+        interval_send_tick( simulated_timer ); 
+    }
+}
+
+void test_remove_id( void )
+{   
+    find_tracked_object_ExpectAndReturn( "test", &tracked_vars[0] );
+    interval_send_add_id( "test", 10 );
+
+    find_tracked_object_ExpectAndReturn( "test", &tracked_vars[0] );
+    interval_send_remove_id( "test" );
+
+    // Tick enough for one send
+    for( uint32_t i = 0; i < 20; i++ )
+    {
+        simulate_tick();
+        interval_send_tick( simulated_timer ); 
+    }
+}
+
+void test_remove( void )
+{
+    interval_send_add( &tracked_vars[0], 10 );
+    interval_send_remove( &tracked_vars[0] );
+
+    // We don't expect sends because it's been removed
+    for( uint32_t i = 0; i < 100; i++ )
+    {
+        simulate_tick();
+        interval_send_tick( simulated_timer ); 
+    }
+}
+
+void test_add_update_remove( void )
+{   
+    // Implicit remove by asking for an interval of 0
+
+    interval_send_add( &tracked_vars[0], 10 );
+
+    eui_send_untracked_Expect( &tracked_vars[0] );
+
+    for( uint32_t i = 0; i < 10; i++ )
+    {
+        simulate_tick();
+        interval_send_tick( simulated_timer ); 
+    }
+
+    interval_send_add( &tracked_vars[0], 0 );
+
+    for( uint32_t i = 0; i < 100; i++ )
+    {
+        simulate_tick();
+        interval_send_tick( simulated_timer ); 
+    }
+}
+
+void test_empty( void )
+{   
+    // We haven't setup any items, so nothing should be sent
+
+    // Tick across the entire counter space
+    // For test perf reasons, we tick the counter 65k steps before
+    // checking if the library wants to send anything
+    // 0xFFFFFFFF worth of ticks, in 0xFFFF batches 
+    for( uint32_t i = 0; i < 0xFFFF; i++ )
+    {
+        simulate_ticks( 0xFFFF);
+        interval_send_tick( simulated_timer ); 
+    }
+}
+
+void test_long_run( void )
+{   
+    // Run the sender with millisecond ticks over a 10-minute span
+    interval_send_add( &tracked_vars[0], 1000 );
+
+    const uint8_t simulate_minutes = 10;
+    const uint32_t simulate_ms = (simulate_minutes * 60 * 1000);
+
+    // Over an expected 10-minute period, how many packets sent?
+    // 1000ms is 1/second, therefore min -> seconds
+    const uint32_t expect_n_send = simulate_minutes * 60;
+
+    for( uint32_t i = 0; i < expect_n_send; i++ )
+    {
+        eui_send_untracked_Expect( &tracked_vars[0] );
+    }
+
+    for( uint32_t i = 0; i <= simulate_ms; i++ )
+    {
+        simulate_tick();
+        interval_send_tick( simulated_timer ); 
+    }
+}
+
+void test_stop_start_id( void )
+{   
+    find_tracked_object_ExpectAndReturn( "test", &tracked_vars[0] );
+    interval_send_add_id( "test", 10 );
+    eui_send_untracked_Expect( &tracked_vars[0] );
+
+    // Tick enough for one send
+    for( uint32_t i = 0; i < 10; i++ )
+    {
+        simulate_tick();
+        interval_send_tick( simulated_timer ); 
+    }
+
+    // Disable the sender
+    find_tracked_object_ExpectAndReturn( "test", &tracked_vars[0] );
+    interval_send_stop_id( "test" );
+
+    for( uint32_t i = 0; i < 50; i++ )
+    {
+        simulate_tick();
+        interval_send_tick( simulated_timer ); 
+    }
+
+    // Re-enable the sender
+    find_tracked_object_ExpectAndReturn( "test", &tracked_vars[0] );
+    interval_send_start_id( "test" );
+    eui_send_untracked_Expect( &tracked_vars[0] );
+
+    for( uint32_t i = 0; i < 10; i++ )
+    {
+        simulate_tick();
+        interval_send_tick( simulated_timer ); 
+    }
+}
+
+void test_stop_start( void )
+{   
+    // When added they automatically start
+    interval_send_add( &tracked_vars[0], 10 );
+    eui_send_untracked_Expect( &tracked_vars[0] );
+
+    // Tick enough for one send
+    for( uint32_t i = 0; i < 10; i++ )
+    {
+        simulate_tick();
+        interval_send_tick( simulated_timer ); 
+    }
+
+    // Disable the sender
+    interval_send_stop( &tracked_vars[0] );
+
+    for( uint32_t i = 0; i < 50; i++ )
+    {
+        simulate_tick();
+        interval_send_tick( simulated_timer ); 
+    }
+
+    // Re-enable the sender
+    interval_send_start( &tracked_vars[0] );
+    eui_send_untracked_Expect( &tracked_vars[0] );
+
+    for( uint32_t i = 0; i < 10; i++ )
+    {
+        simulate_tick();
+        interval_send_tick( simulated_timer ); 
+    }
+}
     {
         simulate_tick();
         interval_send_tick( simulated_timer ); 

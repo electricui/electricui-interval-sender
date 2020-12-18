@@ -41,8 +41,9 @@ void interval_send_tick( uint32_t global_ms )
             {
                 // Check if the object needs to be sent right now
                 if(    item->enabled
-                    && ( global_ms - item->last_sent > item->interval ) )
+                    && ( global_ms - item->last_sent >= item->interval ) )
                 {
+
                     // Because we already have the pointer, send as untracked
                     // eui_send_tracked does the lookup from the ID string
                     eui_send_untracked( item->tracked );
