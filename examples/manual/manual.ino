@@ -64,7 +64,7 @@ void loop()
 {
   while( Serial.available() > 0 )  
   {  
-    eui_parse( Serial.read(), &serial_interface );
+    eui_parse( Serial.read(), &serial_comms );
   }
 
   // Provide the current time in milliseconds, allowing the 
