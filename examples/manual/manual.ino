@@ -14,10 +14,12 @@ uint32_t  led_timer  = 0;   // track when the light turned on or off
 
 char device_name[] = "Manual Send";
 
-eui_interface_t serial_comms = EUI_INTERFACE( &serial_write ); 
-
 void enable_sender( void );
 void disable_sender( void );
+
+
+interval_send_requested_t iv_send_pool[5] = { 0 };
+eui_interface_t serial_comms = EUI_INTERFACE( &serial_write ); 
 
 eui_message_t tracked_variables[] = 
 {
@@ -44,6 +46,7 @@ void setup()
 
   // Setup the sender with the led_state message ID
   // Will be sent every 50 milliseconds
+  interval_send_init( &iv_send_pool, 5 );
   interval_send_add_id( "led_state", 50 );
 
   // Sending starts when added, but can be paused manually 

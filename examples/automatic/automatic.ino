@@ -17,6 +17,8 @@ char device_name[] = "Auto Send";
 // Inbound custom type from UI with ID and interval
 interval_send_requested_t ui_interval_request = { 0 };
 
+interval_send_requested_t iv_send_pool[5] = { 0 };
+
 eui_interface_t serial_interface = EUI_INTERFACE_CB( &serial_write, &eui_callback ); 
 
 eui_message_t tracked_variables[] = 
@@ -37,6 +39,8 @@ void setup()
   EUI_TRACK( tracked_variables );
   eui_setup_identifier( "auto", 4 );
 
+  // Setup the interval_send with a pool to hold send requests
+  interval_send_init( &iv_send_pool, 5 );
   led_timer = millis();
 }
 

@@ -18,6 +18,8 @@ char device_name[] = "Manual Send HB";
 uint32_t last_heartbeat = 0;
 uint8_t heartbeat_ok_count = 0;
 
+interval_send_requested_t iv_send_pool[5] = { 0 };
+
 // Use the EUI_INTERFACE_CB macro to include the diagnostics callback 
 eui_interface_t serial_interface = EUI_INTERFACE_CB( &serial_write, &eui_callback ); 
 
@@ -38,6 +40,9 @@ void setup()
   eui_setup_identifier( "status", 6 );
 
   led_timer = millis();
+
+  // Setup the tracked sender pool, then add the led_state variable to it
+  interval_send_init( &iv_send_pool, 5 );
   interval_send_add_id( "led_state", 50 );
 }
 
