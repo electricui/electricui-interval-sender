@@ -37,17 +37,17 @@ uint32_t interval_send_last_timestamp( eui_message_t *tracked );
 uint8_t interval_send_enabled_id( char *id );
 uint8_t interval_send_enabled( eui_message_t *tracked );
 
-void interval_send_add_id( char *id, uint32_t interval );
-void interval_send_add( eui_message_t *tracked, uint32_t interval );
+bool interval_send_add_id( char *id, uint32_t interval );
+bool interval_send_add( eui_message_t *tracked, uint32_t interval );
 
-void interval_send_remove_id( char *id );
-void interval_send_remove( eui_message_t *tracked );
+bool interval_send_remove_id( char *id );
+bool interval_send_remove( eui_message_t *tracked );
 
-void interval_send_start_id( char *id );
-void interval_send_start( eui_message_t *tracked );
+bool interval_send_start_id( char *id );
+bool interval_send_start( eui_message_t *tracked );
 
-void interval_send_stop_id( char *id );
-void interval_send_stop( eui_message_t *tracked );
+bool interval_send_stop_id( char *id );
+bool interval_send_stop( eui_message_t *tracked );
 
 #ifdef __cplusplus
 }

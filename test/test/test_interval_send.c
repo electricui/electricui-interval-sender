@@ -16,7 +16,7 @@ uint32_t simulated_timer = 0;
 // These are only used for input/output ptrs with mocks
 uint8_t test_variable = 0;
 
-#define NUM_TRACKED_VARS 6
+#define NUM_TRACKED_VARS 7
 
 eui_message_t tracked_vars[ NUM_TRACKED_VARS ] = 
 {
@@ -26,10 +26,12 @@ eui_message_t tracked_vars[ NUM_TRACKED_VARS ] =
     EUI_UINT8( "test4", test_variable ),
     EUI_UINT8( "test5", test_variable ),
     EUI_UINT8( "test6", test_variable ),
-    // EUI_UINT8( "test7", test_variable ),
+    EUI_UINT8( "test7", test_variable ),
 };
 
-send_info_t send_list[ 5 ] = { 0 };
+#define POOL_SIZE_FOR_TEST 5
+
+send_info_t send_list[ POOL_SIZE_FOR_TEST ] = { 0 };
 
 
 // PRIVATE FUNCTIONS
@@ -238,6 +240,77 @@ void test_add_update_remove( void )
     }
 }
 
+void test_add_larger_than_pool( void )
+{   
+    TEST_ASSERT_EQUAL_MESSAGE( POOL_SIZE_FOR_TEST, 5, "This test expects the pool is 5 elements long");
+
+    // Attempt to add more requesters than the pool can hold
+
+    // Check the add was OK, then compare pool pointer is correct
+    TEST_ASSERT_TRUE( interval_send_add( &tracked_vars[0], 10 ) );
+    TEST_ASSERT_EQUAL_PTR( &tracked_vars[0], send_list[0].tracked );
+
+    TEST_ASSERT_TRUE( interval_send_add( &tracked_vars[1], 10 ) );
+    TEST_ASSERT_EQUAL_PTR( &tracked_vars[1], send_list[1].tracked );
+
+    TEST_ASSERT_TRUE( interval_send_add( &tracked_vars[2], 10 ) );
+    TEST_ASSERT_EQUAL_PTR( &tracked_vars[2], send_list[2].tracked );
+
+    TEST_ASSERT_TRUE( interval_send_add( &tracked_vars[3], 10 ) );
+    TEST_ASSERT_EQUAL_PTR( &tracked_vars[3], send_list[3].tracked );
+
+    TEST_ASSERT_TRUE( interval_send_add( &tracked_vars[4], 10 ) );
+    TEST_ASSERT_EQUAL_PTR( &tracked_vars[4], send_list[4].tracked );
+
+    // The pool is now full, adding another new element will fail
+    TEST_ASSERT_FALSE( interval_send_add( &tracked_vars[5], 10 ) );
+
+    // Check the send-list wasn't mutated
+    TEST_ASSERT_EQUAL_PTR( &tracked_vars[0], send_list[0].tracked );
+    TEST_ASSERT_EQUAL_PTR( &tracked_vars[1], send_list[1].tracked );
+    TEST_ASSERT_EQUAL_PTR( &tracked_vars[2], send_list[2].tracked );
+    TEST_ASSERT_EQUAL_PTR( &tracked_vars[3], send_list[3].tracked );
+    TEST_ASSERT_EQUAL_PTR( &tracked_vars[4], send_list[4].tracked );    
+}
+
+void test_pool_reuse_on_add( void )
+{   
+    // Add some senders to the pool.
+    // They should be held sequentially
+
+    TEST_ASSERT_TRUE( interval_send_add( &tracked_vars[0], 10 ) );
+    TEST_ASSERT_EQUAL_PTR( &tracked_vars[0], send_list[0].tracked );
+
+    TEST_ASSERT_TRUE( interval_send_add( &tracked_vars[1], 11 ) );
+    TEST_ASSERT_EQUAL_PTR( &tracked_vars[1], send_list[1].tracked );
+
+    TEST_ASSERT_TRUE( interval_send_add( &tracked_vars[2], 12 ) );
+    TEST_ASSERT_EQUAL_PTR( &tracked_vars[2], send_list[2].tracked );
+
+    // Attempt to remove one that doesn't exist
+    TEST_ASSERT_FALSE( interval_send_remove( &tracked_vars[6] ) );
+
+    // Remove one in the middle of the pool's list
+    TEST_ASSERT_TRUE( interval_send_remove( &tracked_vars[1] ) );
+
+    // Struture data where the entry was removed should be blank
+    TEST_ASSERT_NULL( send_list[1].tracked );
+    TEST_ASSERT_EQUAL( 0, send_list[1].interval );
+    TEST_ASSERT_EQUAL( 0, send_list[1].last_sent );
+    TEST_ASSERT_FALSE( send_list[1].enabled );
+
+
+    // Add another, it should fill the gap left by the previous
+    TEST_ASSERT_TRUE( interval_send_add( &tracked_vars[5], 15 ) );
+    
+    TEST_ASSERT_EQUAL_PTR( &tracked_vars[5], send_list[1].tracked );
+    TEST_ASSERT_EQUAL( 15, send_list[1].interval );
+    TEST_ASSERT_EQUAL( 0, send_list[1].last_sent );
+    TEST_ASSERT_TRUE( send_list[1].enabled );
+
+}
+
+
 void test_empty( void )
 {   
     // We haven't setup any items, so nothing should be sent
@@ -326,7 +399,7 @@ void test_stop_start( void )
     }
 
     // Disable the sender
-    interval_send_stop( &tracked_vars[0] );
+    TEST_ASSERT_TRUE( interval_send_stop( &tracked_vars[0] ) );
 
     for( uint32_t i = 0; i < 50; i++ )
     {
@@ -335,7 +408,7 @@ void test_stop_start( void )
     }
 
     // Re-enable the sender
-    interval_send_start( &tracked_vars[0] );
+    TEST_ASSERT_TRUE( interval_send_start( &tracked_vars[0] ) );
     eui_send_untracked_Expect( &tracked_vars[0] );
 
     for( uint32_t i = 0; i < 10; i++ )
